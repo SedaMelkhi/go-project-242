@@ -4,11 +4,18 @@ import (
 	"os"
 	"context"
 	"log"
+	"fmt"
+
+	"code"
 
 	"github.com/urfave/cli/v3"
 )
 
 func main() {
+	size, err := code.GetSize("./")
+	if err == nil {
+		fmt.Println(size)
+	}
 	app := &cli.Command{
 		Name: "hexlet-path-size",
 		Usage: "print size of a file or directory",
