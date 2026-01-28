@@ -101,7 +101,7 @@ func getDirSize(path string, human, recursive, all bool, totalSize *int64) (stri
 	return fmt.Sprintf("%s\t%s", FormatSize(*totalSize, human), path), nil
 }
 
-func GetSize(path string, human, recursive, all bool) (string, error) {
+func GetPathSize(path string, human, recursive, all bool) (string, error) {
 	fileInfo, err := os.Lstat(path)
 	var totalSize int64
 	if err != nil {
