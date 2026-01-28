@@ -6,53 +6,162 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestFormatSize(t *testing.T){
-	assert.Equal(t, "0B",FormatSize(0, false))
-	assert.Equal(t,"0B", FormatSize(0, true))
-	assert.Equal(t, "1023B",FormatSize(1023, false))
-	assert.Equal(t,"1023B", FormatSize(1023, true))
-	assert.Equal(t, "1024B",FormatSize(1024, false))
-	assert.Equal(t, "1.0KB", FormatSize(1024, true))
-	assert.Equal(t, "1524B", FormatSize(1524, false))
-	assert.Equal(t, "1.5KB", FormatSize(1524, true))
-	assert.Equal(t, "1524000B", FormatSize(1524000, false))
-	assert.Equal(t, "1.5MB", FormatSize(1524000, true))
-	assert.Equal(t, "1524000000B", FormatSize(1524000000, false), )
-	assert.Equal(t, "1.4GB", FormatSize(1524000000, true))
-	assert.Equal(t, "1524000000000B", FormatSize(1524000000000, false), )
-	assert.Equal(t, "1.4TB", FormatSize(1524000000000, true))
+func TestFormatSize_PlainBytes(t *testing.T) {
+	require.Equal(t, "0B", FormatSize(0, false))
+	require.Equal(t, "1023B", FormatSize(1023, false))
+	require.Equal(t, "1024B", FormatSize(1024, false))
+	require.Equal(t, "1524B", FormatSize(1524, false))
+	require.Equal(t, "1524000B", FormatSize(1524000, false))
+	require.Equal(t, "1524000000B", FormatSize(1524000000, false))
+	require.Equal(t, "1524000000000B", FormatSize(1524000000000, false))
 }
 
-func TestGetPathSize_FileInDir(t *testing.T) {
-	path := "./testdata"
-	fileInfo, err := os.Lstat(filepath.Join(path, "file.txt"))
-	require.NoError(t, err)
-	size := fileInfo.Size()
-	fileInfo, err = os.Lstat(filepath.Join(path, "file2.txt"))
-	require.NoError(t, err)
-	size += fileInfo.Size()
-	expected := fmt.Sprintf("%dB\t%s", size, path)
-	result, err := GetSize(path, false)
-	require.NoError(t, err)
-	assert.Equal(t, expected, result)
-	result, err = GetSize(path, true)
-	require.NoError(t, err)
-	assert.Equal(t, expected, result)
+func TestFormatSize_HumanReadable(t *testing.T) {
+	require.Equal(t, "0B", FormatSize(0, true))
+	require.Equal(t, "1023B", FormatSize(1023, true))
+	require.Equal(t, "1.0KB", FormatSize(1024, true))
+	require.Equal(t, "1.5KB", FormatSize(1524, true))
+	require.Equal(t, "1.5MB", FormatSize(1524000, true))
+	require.Equal(t, "1.4GB", FormatSize(1524000000, true))
+	require.Equal(t, "1.4TB", FormatSize(1524000000000, true))
 }
 
-func TestGetPathSize_File(t *testing.T) {
-	path := "./testdata/dir/file.txt"
-	fileInfo, err := os.Lstat(path)
+// --- FILE: visible file ---
+
+func TestGetSize_File_AllTrue_HumanFalse(t *testing.T) {
+	path := filepath.Join("testdata", "dir", "file.txt")
+	info, err := os.Lstat(path)
 	require.NoError(t, err)
-	expected := fmt.Sprintf("%dB\t%s", fileInfo.Size(), path)
-	result, err := GetSize(path, false)
+
+	got, err := GetSize(path, false, true)
 	require.NoError(t, err)
-	assert.Equal(t, expected, result)
-	result, err = GetSize(path, true)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(info.Size(), false), path)
+	require.Equal(t, want, got)
+}
+
+func TestGetSize_File_AllTrue_HumanTrue(t *testing.T) {
+	path := filepath.Join("testdata", "dir", "file.txt")
+	info, err := os.Lstat(path)
 	require.NoError(t, err)
-	assert.Equal(t, expected, result)
+
+	got, err := GetSize(path, true, true)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(info.Size(), true), path)
+	require.Equal(t, want, got)
+}
+
+// --- DIR: visible directory, first-level files only ---
+
+func TestGetSize_Dir_AllTrue_HumanFalse(t *testing.T) {
+	dir := filepath.Join("testdata")
+
+	i1, err := os.Lstat(filepath.Join(dir, "file.txt"))
+	require.NoError(t, err)
+	i2, err := os.Lstat(filepath.Join(dir, "file2.txt"))
+	require.NoError(t, err)
+
+	sum := i1.Size() + i2.Size()
+
+	got, err := GetSize(dir, false, true)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(sum, false), dir)
+	require.Equal(t, want, got)
+}
+
+func TestGetSize_Dir_AllTrue_HumanTrue(t *testing.T) {
+	dir := filepath.Join("testdata")
+
+	i1, err := os.Lstat(filepath.Join(dir, "file.txt"))
+	require.NoError(t, err)
+	i2, err := os.Lstat(filepath.Join(dir, "file2.txt"))
+	require.NoError(t, err)
+
+	sum := i1.Size() + i2.Size()
+
+	got, err := GetSize(dir, true, true)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(sum, true), dir)
+	require.Equal(t, want, got)
+}
+
+// --- HIDDEN FILE path itself (".file.txt") ---
+
+func TestGetSize_HiddenFile_AllFalse_Ignored(t *testing.T) {
+	path := filepath.Join("testdata", "hidden_file", ".file.txt")
+
+	got, err := GetSize(path, false, false)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(0, false), path)
+	require.Equal(t, want, got)
+}
+
+func TestGetSize_HiddenFile_AllTrue_Included(t *testing.T) {
+	path := filepath.Join("testdata", "hidden_file", ".file.txt")
+	info, err := os.Lstat(path)
+	require.NoError(t, err)
+
+	got, err := GetSize(path, false, true)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(info.Size(), false), path)
+	require.Equal(t, want, got)
+}
+
+// --- HIDDEN DIRECTORY path itself (".dir") ---
+
+func TestGetSize_HiddenDir_AllFalse_Ignored_HumanFalse(t *testing.T) {
+	dir := filepath.Join("testdata", ".dir")
+
+	got, err := GetSize(dir, false, false)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(0, false), dir)
+	require.Equal(t, want, got)
+}
+
+func TestGetSize_HiddenDir_AllFalse_Ignored_HumanTrue(t *testing.T) {
+	dir := filepath.Join("testdata", ".dir")
+
+	got, err := GetSize(dir, true, false)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(0, true), dir)
+	require.Equal(t, want, got)
+}
+
+func TestGetSize_HiddenDir_AllTrue_Included_HumanFalse(t *testing.T) {
+	dir := filepath.Join("testdata", ".dir")
+
+	// Ожидаем сумму файлов первого уровня внутри скрытой директории.
+	i1, err := os.Lstat(filepath.Join(dir, "file.txt"))
+	require.NoError(t, err)
+	sum := i1.Size()
+
+	got, err := GetSize(dir, false, true)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(sum, false), dir)
+	require.Equal(t, want, got)
+}
+
+func TestGetSize_HiddenDir_AllTrue_Included_HumanTrue(t *testing.T) {
+	dir := filepath.Join("testdata", ".dir")
+
+	i1, err := os.Lstat(filepath.Join(dir, "file.txt"))
+	require.NoError(t, err)
+	sum := i1.Size()
+
+	got, err := GetSize(dir, true, true)
+	require.NoError(t, err)
+
+	want := fmt.Sprintf("%s\t%s", FormatSize(sum, true), dir)
+	require.Equal(t, want, got)
 }
