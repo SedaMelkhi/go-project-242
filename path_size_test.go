@@ -29,8 +29,6 @@ func TestFormatSize_HumanReadable(t *testing.T) {
 	require.Equal(t, "1.4TB", FormatSize(1524000000000, true))
 }
 
-// --- FILE: visible file ---
-
 func TestGetSize_File_AllTrue_HumanFalse(t *testing.T) {
 	path := filepath.Join("testdata", "dir", "file.txt")
 	info, err := os.Lstat(path)
@@ -54,8 +52,6 @@ func TestGetSize_File_AllTrue_HumanTrue(t *testing.T) {
 	want := fmt.Sprintf("%s\t%s", FormatSize(info.Size(), true), path)
 	require.Equal(t, want, got)
 }
-
-// --- DIR: visible directory, first-level files only ---
 
 func TestGetSize_Dir_AllTrue_HumanFalse(t *testing.T) {
 	dir := filepath.Join("testdata")
@@ -91,8 +87,6 @@ func TestGetSize_Dir_AllTrue_HumanTrue(t *testing.T) {
 	require.Equal(t, want, got)
 }
 
-// --- HIDDEN FILE path itself (".file.txt") ---
-
 func TestGetSize_HiddenFile_AllFalse_Ignored(t *testing.T) {
 	path := filepath.Join("testdata", "hidden_file", ".file.txt")
 
@@ -114,8 +108,6 @@ func TestGetSize_HiddenFile_AllTrue_Included(t *testing.T) {
 	want := fmt.Sprintf("%s\t%s", FormatSize(info.Size(), false), path)
 	require.Equal(t, want, got)
 }
-
-// --- HIDDEN DIRECTORY path itself (".dir") ---
 
 func TestGetSize_HiddenDir_AllFalse_Ignored_HumanFalse(t *testing.T) {
 	dir := filepath.Join("testdata", ".dir")
@@ -140,7 +132,6 @@ func TestGetSize_HiddenDir_AllFalse_Ignored_HumanTrue(t *testing.T) {
 func TestGetSize_HiddenDir_AllTrue_Included_HumanFalse(t *testing.T) {
 	dir := filepath.Join("testdata", ".dir")
 
-	// Ожидаем сумму файлов первого уровня внутри скрытой директории.
 	i1, err := os.Lstat(filepath.Join(dir, "file.txt"))
 	require.NoError(t, err)
 	sum := i1.Size()
@@ -180,22 +171,24 @@ func TestGetSize_Dir_Recursive_IncludesNestedFiles(t *testing.T) {
 
 	sum := i1.Size() + i2.Size() + i3.Size() + i4.Size()
 
-	got, err := GetSize(dir, false, true, false) 
+	got, err := GetSize(dir, false, true, false)
 	require.NoError(t, err)
 
 	want := fmt.Sprintf("%s\t%s", FormatSize(sum, false), dir)
 	require.Equal(t, want, got)
 }
 
-func TestGetSize_Dir_Recursive_AllFalse_IgnoresHiddenFilesAndDirs(t *testing.T) {
-	dir := "testdata"
+func TestGetSize_Dir_Recursive_AllFalse_IncludesNestedNonHiddenDirs(t *testing.T) {
+	dir := filepath.Join("testdata")
 
 	i1, err := os.Lstat(filepath.Join(dir, "file.txt"))
 	require.NoError(t, err)
 	i2, err := os.Lstat(filepath.Join(dir, "file2.txt"))
 	require.NoError(t, err)
+
 	i3, err := os.Lstat(filepath.Join(dir, "dir", "file.txt"))
 	require.NoError(t, err)
+
 	i4, err := os.Lstat(filepath.Join(dir, "hidden_file", "dir", "file.txt"))
 	require.NoError(t, err)
 
@@ -208,50 +201,55 @@ func TestGetSize_Dir_Recursive_AllFalse_IgnoresHiddenFilesAndDirs(t *testing.T) 
 	require.Equal(t, want, got)
 }
 
-func TestGetSize_Dir_Recursive_AllTrue_IncludesHiddenFilesAndDirs(t *testing.T) {
+func TestGetSize_Dir_Recursive_AllTrue_IncludesHiddenFilesAndHiddenDirs(t *testing.T) {
 	dir := filepath.Join("testdata")
 
 	i1, err := os.Lstat(filepath.Join(dir, "file.txt"))
 	require.NoError(t, err)
 	i2, err := os.Lstat(filepath.Join(dir, "file2.txt"))
 	require.NoError(t, err)
-	i3, err := os.Lstat(filepath.Join(dir, ".dir", "file.txt"))
+
+	i3, err := os.Lstat(filepath.Join(dir, "dir", "file.txt"))
 	require.NoError(t, err)
-	i4, err := os.Lstat(filepath.Join(dir, "dir", "file.txt"))
+	i4, err := os.Lstat(filepath.Join(dir, "hidden_file", "dir", "file.txt"))
 	require.NoError(t, err)
-	i5, err := os.Lstat(filepath.Join(dir, "hidden_file", "dir", "file.txt"))
+
+	i5, err := os.Lstat(filepath.Join(dir, ".dir", "file.txt"))
 	require.NoError(t, err)
+
 	i6, err := os.Lstat(filepath.Join(dir, "hidden_file", ".file.txt"))
 	require.NoError(t, err)
 
 	sum := i1.Size() + i2.Size() + i3.Size() + i4.Size() + i5.Size() + i6.Size()
 
-	got, err := GetSize(dir, false, true, true) // recursive=true, all=true
+	got, err := GetSize(dir, false, true, true)
 	require.NoError(t, err)
 
 	want := fmt.Sprintf("%s\t%s", FormatSize(sum, false), dir)
 	require.Equal(t, want, got)
 }
 
-func TestGetSize_Dir_Recursive_HumanTrue_FormatsButDoesNotChangeSum(t *testing.T) {
+func TestGetSize_Dir_Recursive_AllTrue_HumanTrue_FormatsButDoesNotChangeSum(t *testing.T) {
 	dir := filepath.Join("testdata")
 
 	i1, err := os.Lstat(filepath.Join(dir, "file.txt"))
 	require.NoError(t, err)
 	i2, err := os.Lstat(filepath.Join(dir, "file2.txt"))
 	require.NoError(t, err)
-	i3, err := os.Lstat(filepath.Join(dir, ".dir", "file.txt"))
+
+	i3, err := os.Lstat(filepath.Join(dir, "dir", "file.txt"))
 	require.NoError(t, err)
-	i4, err := os.Lstat(filepath.Join(dir, "dir", "file.txt"))
+	i4, err := os.Lstat(filepath.Join(dir, "hidden_file", "dir", "file.txt"))
 	require.NoError(t, err)
-	i5, err := os.Lstat(filepath.Join(dir, "hidden_file", "dir", "file.txt"))
+
+	i5, err := os.Lstat(filepath.Join(dir, ".dir", "file.txt"))
 	require.NoError(t, err)
 	i6, err := os.Lstat(filepath.Join(dir, "hidden_file", ".file.txt"))
 	require.NoError(t, err)
 
 	sum := i1.Size() + i2.Size() + i3.Size() + i4.Size() + i5.Size() + i6.Size()
 
-	got, err := GetSize(dir, true, true, true) // human=true
+	got, err := GetSize(dir, true, true, true)
 	require.NoError(t, err)
 
 	want := fmt.Sprintf("%s\t%s", FormatSize(sum, true), dir)

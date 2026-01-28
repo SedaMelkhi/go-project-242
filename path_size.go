@@ -3,8 +3,8 @@ package code
 import (
 	"fmt"
 	"os"
-	"strings"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -68,7 +68,7 @@ func getDirSize(path string, human, recursive, all bool, totalSize *int64) (stri
 	if err != nil {
 		return "", err
 	}
-	
+
 	if !strings.HasPrefix(dirInfo.Name(), ".") || all {
 		for _, entry := range entries {
 			if !entry.IsDir() {
@@ -77,28 +77,25 @@ func getDirSize(path string, human, recursive, all bool, totalSize *int64) (stri
 					return "", err
 				}
 				if all {
-					*totalSize += + info.Size()
+					*totalSize += info.Size()
 				} else if !strings.HasPrefix(entry.Name(), ".") {
-					*totalSize += + info.Size()
-				} 
+					*totalSize += info.Size()
+				}
 			}
 		}
 	}
-	
-	
-	
+
 	if recursive {
 		for _, entry := range entries {
-			if err != nil {
-				return "", err
-			}
-			if entry.IsDir() && all || entry.IsDir() && !strings.HasPrefix(entry.Name(), "."){
-				childPath := filepath.Join(path, entry.Name())
+			isDir := entry.IsDir()
+			name := entry.Name()
+			if isDir && (all || !strings.HasPrefix(name, ".")) {
+				childPath := filepath.Join(path, name)
 				_, err := getDirSize(childPath, human, recursive, all, totalSize)
 				if err != nil {
 					return "", err
 				}
-			} 
+			}
 		}
 	}
 	return fmt.Sprintf("%s\t%s", FormatSize(*totalSize, human), path), nil
@@ -106,7 +103,7 @@ func getDirSize(path string, human, recursive, all bool, totalSize *int64) (stri
 
 func GetSize(path string, human, recursive, all bool) (string, error) {
 	fileInfo, err := os.Lstat(path)
-	var totalSize int64 
+	var totalSize int64
 	if err != nil {
 		return "", err
 	}
