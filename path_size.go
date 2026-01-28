@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"path/filepath"
 )
 
 const (
@@ -58,46 +59,63 @@ func FormatSize(size int64, human bool) string {
 	return fmt.Sprintf("%dB", size)
 }
 
-func getDirSize(path string, human bool, all bool) (string, error) {
+func getDirSize(path string, human, recursive, all bool, totalSize *int64) (string, error) {
 	dirInfo, err := os.Lstat(path)
 	if err != nil {
 		return "", err
 	}
-	if strings.HasPrefix(dirInfo.Name(), ".") && !all {
-		return fmt.Sprintf("%s\t%s", FormatSize(0, human), path), nil
-	}
 	entries, err := os.ReadDir(path)
-	var totalSize int64
 	if err != nil {
 		return "", err
 	}
 	
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			info, err := entry.Info()
+	if !strings.HasPrefix(dirInfo.Name(), ".") || all {
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				info, err := entry.Info()
+				if err != nil {
+					return "", err
+				}
+				if all {
+					*totalSize += + info.Size()
+				} else if !strings.HasPrefix(entry.Name(), ".") {
+					*totalSize += + info.Size()
+				} 
+			}
+		}
+	}
+	
+	
+	
+	if recursive {
+		for _, entry := range entries {
 			if err != nil {
 				return "", err
 			}
-			if all {
-				totalSize += info.Size()
-			} else if !strings.HasPrefix(entry.Name(), ".") {
-				totalSize += info.Size()
+			if entry.IsDir() && all || entry.IsDir() && !strings.HasPrefix(entry.Name(), "."){
+				childPath := filepath.Join(path, entry.Name())
+				_, err := getDirSize(childPath, human, recursive, all, totalSize)
+				if err != nil {
+					return "", err
+				}
 			} 
 		}
 	}
-	return fmt.Sprintf("%s\t%s", FormatSize(totalSize, human), path), nil
+	return fmt.Sprintf("%s\t%s", FormatSize(*totalSize, human), path), nil
 }
 
-func GetSize(path string, human bool, all bool) (string, error) {
+func GetSize(path string, human, recursive, all bool) (string, error) {
 	fileInfo, err := os.Lstat(path)
+	var totalSize int64 
 	if err != nil {
 		return "", err
 	}
 	if fileInfo.IsDir() {
-		return getDirSize(path, human, all)
+		return getDirSize(path, human, recursive, all, &totalSize)
 	}
 	if strings.HasPrefix(fileInfo.Name(), ".") && !all {
 		return fmt.Sprintf("%s\t%s", FormatSize(0, human), path), nil
 	}
-	return fmt.Sprintf("%s\t%s", FormatSize(fileInfo.Size(), human), path), nil
+	totalSize = fileInfo.Size()
+	return fmt.Sprintf("%s\t%s", FormatSize(totalSize, human), path), nil
 }
