@@ -31,4 +31,4 @@ jobs:
         run: ./bin/hexlet-path-size
 
       - name: Tests
-        run: go ./test ./... -v
+        run: go test ./... -v
