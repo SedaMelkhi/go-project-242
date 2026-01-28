@@ -27,6 +27,9 @@ func main() {
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			human := cmd.Bool("human")
 			path := cmd.Args().First()
+			if path == ""{
+				path = "./"
+			}
 			size, err := code.GetSize(path, human)
 			if err != nil {
 				return err
