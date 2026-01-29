@@ -44,7 +44,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			fmt.Println(size)
+			fmt.Printf("%s\t%s\n", size, path)
 			return nil
 		},
 	}
