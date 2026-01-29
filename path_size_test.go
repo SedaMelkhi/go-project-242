@@ -37,7 +37,7 @@ func TestGetSize_File_AllTrue_HumanFalse(t *testing.T) {
 	got, err := GetPathSize(path, false, false, true)
 	require.NoError(t, err)
 
-	want := fmt.Sprintf("%s", FormatSize(info.Size(), false))
+	want := FormatSize(info.Size(), false)
 	require.Equal(t, want, got)
 }
 
@@ -105,7 +105,7 @@ func TestGetSize_HiddenFile_AllTrue_Included(t *testing.T) {
 	got, err := GetPathSize(path, false, false, true)
 	require.NoError(t, err)
 
-	want := fmt.Sprintf("%s", FormatSize(info.Size(), false))
+	want := FormatSize(info.Size(), false)
 	require.Equal(t, want, got)
 }
 
