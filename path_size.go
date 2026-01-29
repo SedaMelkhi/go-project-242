@@ -98,7 +98,7 @@ func getDirSize(path string, human, recursive, all bool, totalSize *int64) (stri
 			}
 		}
 	}
-	return fmt.Sprintf("%s", FormatSize(*totalSize, human)), nil
+	return FormatSize(*totalSize, human), nil
 }
 
 func GetPathSize(path string, recursive, human, all bool) (string, error) {
@@ -111,8 +111,8 @@ func GetPathSize(path string, recursive, human, all bool) (string, error) {
 		return getDirSize(path, human, recursive, all, &totalSize)
 	}
 	if strings.HasPrefix(fileInfo.Name(), ".") && !all {
-		return fmt.Sprintf("%s", FormatSize(0, human)), nil
+		return FormatSize(0, human), nil
 	}
 	totalSize = fileInfo.Size()
-	return fmt.Sprintf("%s", FormatSize(totalSize, human)), nil
+	return FormatSize(totalSize, human), nil
 }
