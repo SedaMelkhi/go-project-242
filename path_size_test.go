@@ -1,7 +1,6 @@
 package code
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
