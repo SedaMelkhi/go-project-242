@@ -40,7 +40,7 @@ func main() {
 			if path == "" {
 				path = "./"
 			}
-			size, err := code.GetPathSize(path, human, recursive, all)
+			size, err := code.GetPathSize(path, recursive, human,  all)
 			if err != nil {
 				return err
 			}
