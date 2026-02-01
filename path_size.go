@@ -16,7 +16,7 @@ const (
 	EB = 1024 * PB
 )
 
-func FormatSize(size int64, human bool) string {
+func formatSize(size int64, human bool) string {
 	if !human {
 		return fmt.Sprintf("%dB", size)
 	}
@@ -60,28 +60,21 @@ func FormatSize(size int64, human bool) string {
 }
 
 func getDirSize(path string, human, recursive, all bool, totalSize *int64) (string, error) {
-	dirInfo, err := os.Lstat(path)
-	if err != nil {
-		return "", err
-	}
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		return "", err
 	}
 
-	if !strings.HasPrefix(dirInfo.Name(), ".") || all {
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				info, err := entry.Info()
-				if err != nil {
-					return "", err
-				}
-				if all {
-					*totalSize += info.Size()
-				} else if !strings.HasPrefix(entry.Name(), ".") {
-					*totalSize += info.Size()
-				}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			info, err := entry.Info()
+			if err != nil {
+				return "", err
 			}
+			if all || !strings.HasPrefix(entry.Name(), ".") {
+    			*totalSize += info.Size()
+			}
+
 		}
 	}
 
@@ -98,9 +91,18 @@ func getDirSize(path string, human, recursive, all bool, totalSize *int64) (stri
 			}
 		}
 	}
-	return FormatSize(*totalSize, human), nil
+	return formatSize(*totalSize, human), nil
 }
 
+
+// GetPathSize возвращает размер файла или директории по указанному пути.
+//
+// Если path указывает на директорию и recursive=true, размер считается рекурсивно
+// (включая вложенные директории). Если recursive=false, учитываются только файлы
+// первого уровня.
+//
+// Если human=true, размер возвращается в человекочитаемом формате (KB, MB и т.д.).
+// Если all=false, скрытые файлы и директории (начинающиеся с ".") не учитываются.
 func GetPathSize(path string, recursive, human, all bool) (string, error) {
 	fileInfo, err := os.Lstat(path)
 	var totalSize int64
@@ -111,8 +113,8 @@ func GetPathSize(path string, recursive, human, all bool) (string, error) {
 		return getDirSize(path, human, recursive, all, &totalSize)
 	}
 	if strings.HasPrefix(fileInfo.Name(), ".") && !all {
-		return FormatSize(0, human), nil
+		return formatSize(0, human), nil
 	}
 	totalSize = fileInfo.Size()
-	return FormatSize(totalSize, human), nil
+	return formatSize(totalSize, human), nil
 }
